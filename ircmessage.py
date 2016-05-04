@@ -24,11 +24,11 @@ class IRCMessage():
                 self.sender = parse.group(1)
                 self.channel = parse.group(3)
                 self.msg = parse.group(4)
-                if self.sender == '' or '\ufeff':
-                    parse = re.match('<(\S+)> (.*)$', self.msg)
-                    if parse:
-                        self.sender = parse.group(1)
-                        self.msg = parse.group(2)
+                #if self.sender == '' or '\ufeff':
+                    #parse = re.match('<(\S+)> (.*)$', self.msg)
+                    #if parse:
+                        #self.sender = parse.group(1)
+                        #self.msg = parse.group(2)
             elif self.msgType == 'MODE':
                 self.sender = parse.group(1)
                 self.channel = parse.group(3).split(' ', maxsplit=1)[0]
