@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from react import *
+from masterop import *
+from LIST import *
 from ircmessage import IRCMessage
 from setting import botnick
 from queue import Queue
-import re, random, sqlite3
-import time
+import re, random, sqlite3, time
 
-#여기 밑에는 아래에서 쓰일 리스트나 자료들이 위치할 곳 입니당~
-m = 'MODE'
-p = 'PRIVMSG'
-blacklist = ['gs12117', 'gs12117_c', '효퓨터', '최석환', 'bono']
-notlist = ['진우','우진','카와이','ㅈㅇㅈ','ㅋㅇㅇ','jw','JW','주인','가장','세젤귀','커여워','kw','술','펌프','부자킹','ㅂㅈㅋ','와이','@','Jin']
+
 
 class Bot():
     irc = None
@@ -25,13 +22,9 @@ class Bot():
         self.irc.start()
 
     def run(self):
-        self.irc.joinchan('#jwpasschan70')
-        self.irc.sendmsg('#jwpasschan70', 'join!')
-        key = 0
-        password = 234234
-        duetime = time.time()
-        tempmaster = ''
-        masterlist = ['JW275', tempmaster]
+        slave = master() #추천해준 gs12117에게 감사를 표합니다
+        slave.join(self)
+
         while True:
             packet = self.msgQueue.get()
             if packet['type'] == 'msg':
@@ -46,13 +39,12 @@ class Bot():
                     self.irc.joinchan(message.channel)
 
                 elif message.msgType == 'JOIN' and message.sender == '치즈':
-                    if message.channel != '#jwchan':
-                        self.irc.giveop(message.channel, message.sender)
+                    self.irc.giveop(message.channel, message.sender)
 
                 elif message.msgType == 'NOTICE':
                     if message.sender == 'JW275' and message.channel == botnick:
-                        self.irc.semdmsg('#jwtest', message.msg)
                         continue
+                
                 elif message.msgType == 'MODE':
                     if (message.msg == '+o ' + botnick) and (message.sender != 'JJing_e'):
                         say = op()
@@ -62,39 +54,19 @@ class Bot():
                         self.irc.sendmsg(message.channel, say)
 
                 elif (message.msgType == 'PRIVMSG') and (message.sender not in blacklist):
-                    if message.sender in [r'\b','C','bryan_a','cubeIover','VBChunguk_bot','gn','kcm1700-bot','Diet-bot','Flareon','Delphox']:
-                        continue
-                    
-                    if (message.msg.find('시리우스 옵줘') != -1) and (message.sender not in blacklist):
-                        if message.channel == '#jwchan':
-                            if message.sender == 'JW275':
-                                self.irc.giveop(message.channel, message.sender)
-                                say = giop()
-                                self.irc.sendmsg(message.channel, say)
-                        else:
-                            self.irc.giveop(message.channel, message.sender)
-                            say = giop()
-                            self.irc.sendmsg(message.channel, say)
+                    if message.msg.find('시리우스 나 주인할래') != -1:
+                        slave.mkpass(self)
+                    elif slave.key == 1:
+                        slave.givemaster(self, message)
+                    elif time.time() > slave.duetime:
+                        slave.initmaster()
 
 
-                    
-                    elif message.msg.find('시리우스 나 주인할래') != -1:
-                        key = 1
-                        password = random.randint(100000, 999999)
-                        self.irc.sendmsg('#jwpasschan70', '%d' % password)
-                    elif key == 1:
-                        if message.msg.find('%d' % password) != -1:
-                            tempmaster = message.sender
-                            masterlist = ['JW275', tempmaster]
-                            duetime = time.time() + 3600
-                            ifmaster = 0
-                            self.irc.sendmsg('#jwpasschan70', 'start! %s' % tempmaster)
-                    elif time.time() > duetime:
-                        tempmaster = ''
-                        masterlist = ['JW275', tempmaster]
-                        #self.irc.sendmsg('#jwpasschan70', 'end!')
-    
-                    if message.msg.find('냐아앙♡') != -1:
+                    if message.msg.find('시리우스 옵줘') != -1:
+                        self.irc.giveop(message.channel, message.sender)
+                        say = giop()
+                        self.irc.sendmsg(message.channel, say)
+                    elif message.msg.find('냐아앙♡') != -1:
                         self.irc.sendmsg(message.channel, '으르릉..')
                     elif message.msg.find('참치 먹자') != -1:
                         self.irc.sendmsg(message.channel, '퉤퉷')
@@ -102,9 +74,8 @@ class Bot():
                         check = random.randint(1,5)
                         if check == 1:
                             self.irc.sendmsg(message.channel, '거짓말쟁이..크르릉..')
-                    elif (message.msg.find('좋은아침입니다여러분') != -1) and (message.sender in masterlist):
-                        self.irc.sendmsg(message.channel, '헥헥! 주인님 잘자써오?')
-                    elif (message.msg.find('좋은아침입니다여러분') != -1) and (message.sender == '이진우ㅤ'):
+                    
+                    elif (message.msg.find('좋은아침입니다여러분') != -1) and (message.sender in slave.masterlist):
                         self.irc.sendmsg(message.channel, '헥헥! 주인님 잘자써오?')
 
                     elif message.msg.find('고기 먹고싶다') != -1:
@@ -112,7 +83,7 @@ class Bot():
                     elif message.msg.find('고양이 키우고싶다') != -1:
                         self.irc.sendmsg(message.channel, '크오아아아앙!!!!')
 
-                    elif (message.msg.find('그치 시리우스야?') != -1) and (message.sender in masterlist):
+                    elif (message.msg.find('그치 시리우스야?') != -1) and (message.sender in slave.masterlist):
                         self.irc.sendmsg(message.channel, '멍!ฅ^•ﻌ•^ฅ')
 
 
@@ -146,6 +117,7 @@ class Bot():
                             say = attack()
                             self.irc.sendmsg(message.channel, say)
 
+                    
                     parse = re.match('^시리우스! (\S+)$', message.msg)
                     if parse:
                         act = parse.group(1)
@@ -164,13 +136,13 @@ class Bot():
 
                     parse = re.match('^시리우스! 치즈 괴롭혀!$', message.msg)
                     if parse:
-                        if message.sender in masterlist:
+                        if message.sender in slave.masterlist:
                             self.irc.sendmsg(message.channel, '바보 냥이!멍!')
                             self.irc.deop(message.channel, '치즈')
 
                     parse = re.match('^시리우스! 치즈한테 사과해!$', message.msg)
                     if parse:
-                        if message.sender in masterlist:
+                        if message.sender in slave.masterlist:
                             self.irc.sendmsg(message.channel, 'ＵＴｪＴＵ미아내오..쓰담쓰담..')
                             self.irc.giveop(message.channel, '치즈')
 
@@ -191,65 +163,9 @@ class Bot():
                         elif check == 'off':
                             continue
 
-"""                 
-        global key
-        global duetime
-        global password
-        global tempmaster
-        global masterlist
-        global notlist
-        global blacklist
 
 
-
-        elif message.msg.find('시리우스 나 주인할래') != -1:
-                        key = 1
-                        password = random.randint(100000, 999999)
-                        self.irc.sendmsg('#jwpasschan70', '%d' % password)
-                    elif key == 1:
-                        if message.msg.find('%d' % password) != -1:
-                            tempmaster = message.sender
-                            duetime = time.time() + 3600
-                            ifmaster = 0
-                    elif time.time() > duetime:
-                        tempmaster = ''
-    
-                    elif (message.sender == '치즈') and (message.msg == ''):
-                        self.irc.sendmsg(message.channel, '컹컹!')
-                        con = sqlite3.connect("count.db")
-                        c = con.cursor()
-                        c.execute()
-
-                    parse = re.match('!piu(\w+)(\W+)\s(\w*)', message.msg)
-                    if parse and message.sender == '치즈':
-                        nick = parse.group(1)
-                        case = parse.group(2)
-                        thing = parse.group(3)
-                        if case == '+':
-                            con = sqlite3.connect("memblist.db")
-                            c = con.cursor()
-                            c.execute("insert into %s values('%s')" % (nick, thing))
-                            con.commit()
-                            con.close()
-                            self.irc.sendmsg(message.channel, '추가됐슴당')
-                        elif case == '-':
-                            continue
-                            #향후 추가예정 && 멤버리스트에 있는지 확인하고 없으면 메세지내보내기 만들기
-                        elif case == '?':
-                            con = sqlite3.connect("count.db")
-                            c = con.cursor()
-                            c.execute("select * from %s" % nick)
-                            things = []
-                            for i in c:
-                                things.append(i[0])
-                            temp = random.choice(things)
-                            self.irc.sendmsg(message.channel, '%s' % temp)
-                            con.close()
-"""
-
-
-
-#running
+# bot running
 if __name__ == '__main__':
     bot = Bot()
     bot.run()
